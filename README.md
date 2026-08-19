@@ -2,7 +2,7 @@
 
 **MCP server that gives AI the ability to search and read the web.**
 
-网蜃楼 — 帮 AI 从互联网的海市蜃楼中捕捉真实信息。
+[English](README.md) | [中文](README_zh.md)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -250,8 +250,8 @@ webmirage/
     │   ├── client.py        # XueqiuClient (cookie + urllib)
     │   └── tools.py         # 5 MCP tool definitions (quote/search/hot/watchlist)
     └── xianyu/
-        ├── client.py        # XianyuClient (cookie + mtop 签名直调)
-        ├── scorer.py        # 智能评分系统 v3.0 (时效×稀缺矩阵 + 规格提取)
+        ├── client.py        # XianyuClient (cookie + mtop signature direct call)
+        ├── scorer.py        # Intelligent scoring v3.0 (freshness × scarcity matrix + spec extraction)
         └── tools.py         # 5 MCP tool definitions
 ```
 
@@ -282,7 +282,7 @@ The `xianyu_score_search` tool implements a unique scoring system designed for h
 | **Compliance** | 10 | Code (automatic) |
 | **Value for money** | 60 | AI (cross-product comparison) |
 
-**Timeliness matrix** — Freshness × Scarcity, with 8-day inflection point:
+**Timeliness matrix** — Freshness x Scarcity, with 8-day inflection point:
 - New + few wants = High score (hidden gem opportunity)
 - Old + few wants = Low score (stale listing, something wrong)
 - Old + many wants = Medium score (genuine demand confirmed)
