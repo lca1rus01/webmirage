@@ -5,7 +5,7 @@ description = "MCP server that gives AI the ability to search and read the web. 
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
-authors = [{ name = "webmirage" }]
+authors = [{ name = "lca1rus01" }]
 keywords = [
     "mcp", "ai-agent", "twitter", "web-search",
     "llm-tools", "model-context-protocol",
@@ -44,9 +44,9 @@ dev = [
 webmirage = "webmirage.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/yourname/webmirage"
-Repository = "https://github.com/yourname/webmirage"
-Issues = "https://github.com/yourname/webmirage/issues"
+Homepage = "https://github.com/lca1rus01/webmirage"
+Repository = "https://github.com/lca1rus01/webmirage"
+Issues = "https://github.com/lca1rus01/webmirage/issues"
 
 [build-system]
 requires = ["hatchling"]

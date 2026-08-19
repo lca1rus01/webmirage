@@ -22,6 +22,7 @@ from .platforms.base import PlatformTools
 from .platforms.twitter.tools import TwitterTools
 from .platforms.xueqiu.tools import XueqiuTools
 from .platforms.xianyu.tools import XianyuTools
+from .platforms.reddit.tools import RedditTools
 
 # ── Platform registry ────────────────────────────────────────────────────
 # To add a new platform, import its tools class and add it here.
@@ -29,7 +30,7 @@ ALL_PLATFORMS: list[PlatformTools] = [
     TwitterTools(),
     XueqiuTools(),
     XianyuTools(),
-    # RedditTools(),      # future
+    RedditTools(),
     # YouTubeTools(),     # future
 ]
 

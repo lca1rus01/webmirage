@@ -97,6 +97,15 @@ def get_config() -> dict[str, Any]:
         "XIANYU_USER_ID", file_config.get("xianyu_user_id", "")
     )
 
+    # Reddit config
+    # cookie 必须包含 reddit_session 字段（登录态凭证）。
+    # 获取方式：浏览器登录 reddit.com 后，F12 -> Application -> Cookies
+    # 找到 reddit_session，将其值拼成 "reddit_session=xxx" 形式。
+    # 留空则尝试匿名访问（部分端点可能 403）。
+    config["reddit_cookie"] = os.environ.get(
+        "REDDIT_COOKIE", file_config.get("reddit_cookie", "")
+    )
+
     _config_cache = config
     return config
 

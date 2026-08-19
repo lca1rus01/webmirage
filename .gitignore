@@ -21,6 +21,9 @@ env/
 .env
 *.local
 
+# User config (contains cookies)
+config.yaml
+
 # Cache
 *.log
 .cache/
