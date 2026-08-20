@@ -1,11 +1,11 @@
 <h1 align="center">🌊 webmirage</h1>
 
 <p align="center">
-  <strong>Give your AI Agent the ability to search and read the web</strong>
+  <strong>给你的 AI Agent 一键装上互联网能力</strong>
 </p>
 
 <p align="center">
-  网蜃楼 — Help AI capture real information from the mirage of the internet
+  网蜃楼 — 帮 AI 从互联网的海市蜃楼中捕捉真实信息
 </p>
 
 <p align="center">
@@ -15,58 +15,62 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> · <a href="README_zh.md">中文</a> · <a href="#supported-platforms">Platforms</a> · <a href="#design-philosophy">Philosophy</a> · <a href="#xianyu-intelligent-scoring-system-v30">Scoring</a>
+  <a href="#快速上手">快速开始</a> · <a href="README_en.md">English</a> · <a href="#支持的平台">支持平台</a> · <a href="#设计理念">设计理念</a> · <a href="#闲鱼智能评分系统">闲鱼评分</a>
 </p>
 
 ---
 
-## Why do you need webmirage?
+## 为什么需要 webmirage？
 
-AI Agents can already write code, edit docs, and manage projects — but ask one to find something online, and it hits a wall:
+AI Agent 已经能帮你写代码、改文档、管项目——但你让它去网上找点东西，它就抓瞎了：
 
-- 🐦 "Search Twitter for what people think about this product" → **Can't do it**, Twitter API costs $100/mo
-- 📖 "Check Reddit for discussions about this bug" → **403 blocked**, server IP rejected
-- 📈 "What's the PE ratio of Kweichow Moutai?" → **Can't get it**, financial data requires payment
-- 🛒 "Search Goofish for a used mini PC with good value" → **No API**, only manual browsing
-- 🌐 "Read what this webpage says" → **Returns raw HTML**, unreadable
+- 🐦 "帮我搜一下推特上大家怎么评价这个产品" → **搜不了**，Twitter API 要 $100/月
+- 📖 "去 Reddit 上看看有没有人遇到过同样的 bug" → **403 被封**，服务器 IP 被拒
+- 📈 "查一下茅台现在的 PE 和市值" → **拿不到**，金融数据要付费
+- 🛒 "帮我在闲鱼搜个二手迷你主机，性价比好一点的" → **没法搜**，没有 API 只能手动刷
+- 🌐 "帮我看看这个网页写了啥" → **抓回来一堆 HTML 标签**，根本没法读
 
-**These aren't hard to implement — but each platform has its own gate: paid APIs, anti-bot blocks, login walls, data cleaning. You'd spend hours configuring tools just to let your Agent read a tweet.**
+**这些不难实现，但是需要自己折腾配置**
 
-**webmirage turns this into one MCP server:** Install, add cookies, and your AI can search Twitter, browse Reddit, check stock valuations, and shop on Goofish — 24 tools, one entry point.
+每个平台都有自己的门槛——要付费的 API、要绕过的封锁、要登录的账号、要清洗的数据。你要一个一个去踩坑、装工具、调配置，光是让 Agent 能读个推特就得折腾半天。
+
+**webmirage 把这件事变成一个 MCP 服务器：**
+
+装好、配好 Cookie，你的 AI 就能搜推特、刷 Reddit、查股票行情、逛闲鱼——24 个工具，一个入口。
 
 ---
 
-### ✅ Before you start
+### ✅ 在你用之前，你可能想知道
 
 | | |
 |---|---|
-| 💰 **Completely free** | All tools open source, all APIs free. No API keys to apply for |
-| 🔒 **Privacy-first** | Cookies stored locally only. Never uploaded. Fully open-source, auditable |
-| 🛡️ **Anti-detection** | TLS fingerprint impersonation + x-client-transaction-id + request jitter |
-| 🤖 **All MCP clients** | Claude Desktop, Cursor, Windsurf, opencode — anything that supports MCP |
-| 🧩 **Plugin architecture** | Add new platforms by implementing one interface, no core changes |
+| 💰 **完全免费** | 所有工具开源，所有 API 免费。不花一分钱，不用申请任何 API Key |
+| 🔒 **隐私安全** | Cookie 只存在你本地，不上传不外传。代码完全开源，随时可审查 |
+| 🛡️ **反检测** | TLS 指纹模拟 + x-client-transaction-id 生成 + 请求抖动，降低被封风险 |
+| 🤖 **兼容所有 MCP 客户端** | Claude Desktop、Cursor、Windsurf、opencode……任何支持 MCP 的客户端都能用 |
+| 🧩 **插件架构** | 实现一个接口就能添加新平台，不改核心代码 |
 
 ---
 
-## Supported Platforms
+## 支持的平台
 
-| Platform | Tools | Core Capabilities | Config |
-|----------|-------|--------------------|--------|
-| 🐦 **Twitter/X** | 9 | Search tweets, user posts, tweet threads, profiles, following lists, watchlist feed | Cookie (auth_token + ct0) |
-| 📖 **Reddit** | 5 | Search posts, subreddit hot posts, post+comments, user profiles, user activity | Cookie (reddit_session), or browser-cookie3 auto-extract |
-| 📈 **Xueqiu** | 5 | Real-time quotes+PE/PB/EPS, stock search, hot posts, hot stocks, watchlist batch | None (auto public cookie) |
-| 🛒 **Xianyu/Goofish** | 5 | Product search, intelligent scoring, item details, my items, confirm delivery | Cookie (_m_h5_tk + unb) |
-| **Total** | **24** | | |
+| 平台 | 工具数 | 核心能力 | 怎么配 |
+|------|--------|----------|--------|
+| 🐦 **Twitter/X** | 9 | 搜索推文、用户帖子、帖子线程、用户画像、关注列表、Watchlist Feed | Cookie（auth_token + ct0） |
+| 📖 **Reddit** | 5 | 搜索帖子、版块热帖、帖子+评论、用户画像、用户发帖 | Cookie（reddit_session），或装 browser-cookie3 自动提取 |
+| 📈 **雪球** | 5 | 实时行情+PE/PB/EPS、股票搜索、热帖、热门股排行、自选股批量行情 | 无需配置（自动获取公共 Cookie） |
+| 🛒 **闲鱼** | 5 | 商品搜索、智能评分排名、商品详情、我的在售列表、确认发货 | Cookie（含 _m_h5_tk + unb） |
+| **合计** | **24** | | |
 
-> 🍪 All platforms use browser cookies — no official APIs needed. Cookies stay local, never uploaded.
+> 🍪 所有平台都用浏览器 Cookie 认证，不需要申请任何官方 API。Cookie 只存你本地，不上传不外传。
 >
-> ⚠️ **Ban risk:** Platforms like Twitter may detect non-browser API calls. Use a **dedicated secondary account**, not your main one.
+> ⚠️ **封号风险提醒：** 使用 Cookie 登录的平台（Twitter 等），通过脚本/API 调用**存在被平台检测并封号的风险**。请务必使用**专用小号**，不要用你的主账号。
 
 ---
 
-## Quick Start
+## 快速上手
 
-### 1. Install
+### 1. 安装
 
 ```bash
 git clone https://github.com/lca1rus01/webmirage.git
@@ -74,33 +78,33 @@ cd webmirage
 pip install -e .
 ```
 
-For browser cookie auto-extraction (Reddit / Xueqiu):
+如需浏览器 Cookie 自动提取（Reddit / 雪球）：
 
 ```bash
 pip install -e ".[xueqiu]"
 ```
 
-### 2. Configure Cookies
+### 2. 配置 Cookie
 
-**Option A: `.env` file**
+**方式 A：`.env` 文件**
 
 ```bash
 cp .env.example .env
-# Edit .env, fill in your cookies
+# 编辑 .env，填入你的 Cookie
 ```
 
 ```ini
-TWITTER_AUTH_TOKEN=your_auth_token
-TWITTER_CT0=your_ct0
+TWITTER_AUTH_TOKEN=你的auth_token
+TWITTER_CT0=你的ct0
 # REDDIT_COOKIE=reddit_session=xxx
-# XIANYU_COOKIE=your_full_cookie_string
+# XIANYU_COOKIE=你的完整cookie字符串
 ```
 
-**Option B: YAML config** at `~/.webmirage/config.yaml`
+**方式 B：YAML 配置文件** `~/.webmirage/config.yaml`
 
 ```yaml
-twitter_auth_token: "your_auth_token"
-twitter_ct0: "your_ct0"
+twitter_auth_token: "你的auth_token"
+twitter_ct0: "你的ct0"
 twitter_watchlist:
   - elonmusk
   - realDonaldTrump
@@ -115,51 +119,51 @@ xueqiu_watchlist:
 xianyu_cookie: "_m_h5_tk=xxx; unb=12345; ..."
 ```
 
-### How to Get Cookies
+### Cookie 怎么获取？
 
 <details>
-<summary>Twitter/X</summary>
+<summary>Twitter/X（点击展开）</summary>
 
-1. Login to [x.com](https://x.com) in your browser
-2. Install [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) Chrome extension
-3. Click the extension icon -> Export -> "Header String"
-4. Find `auth_token` and `ct0` values
+1. 在浏览器登录 [x.com](https://x.com)
+2. 安装 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) Chrome 插件
+3. 点击插件图标 → Export → "Header String"
+4. 从导出内容中找到 `auth_token` 和 `ct0` 两个值
 
 </details>
 
 <details>
-<summary>Reddit</summary>
+<summary>Reddit（点击展开）</summary>
 
-1. Login to [reddit.com](https://www.reddit.com) in Chrome/Edge
-2. F12 -> Application -> Cookies -> reddit.com
-3. Find `reddit_session`, copy its Value
-4. Configure as `reddit_session=xxx`
+1. 在 Chrome/Edge 中登录 [reddit.com](https://www.reddit.com)
+2. F12 → Application → Cookies → reddit.com
+3. 找到 `reddit_session`，复制其 Value
+4. 配置为 `reddit_session=xxx` 形式
 
-> With `browser-cookie3` installed, webmirage can auto-extract Reddit cookies from your browser.
-
-</details>
-
-<details>
-<summary>Xianyu / Goofish</summary>
-
-1. Login to [goofish.com](https://www.goofish.com) in your browser
-2. F12 -> Application -> Cookies -> goofish.com
-3. Copy all cookies as `k1=v1; k2=v2; ...` format
-4. Must include `_m_h5_tk` and `unb` fields
+> 如果安装了 `browser-cookie3`，webmirage 可以自动从浏览器提取 Reddit Cookie——无需手动配置。
 
 </details>
 
 <details>
-<summary>Xueqiu</summary>
+<summary>闲鱼 / Goofish（点击展开）</summary>
 
-- **No cookie needed!** webmirage auto-obtains public cookies from the homepage.
-- For personalized data (watchlist), login in Chrome and install `browser-cookie3`.
+1. 在浏览器中登录 [goofish.com](https://www.goofish.com)
+2. F12 → Application → Cookies → goofish.com
+3. 把所有 Cookie 拼成 `k1=v1; k2=v2; ...` 格式
+4. 必须包含 `_m_h5_tk` 和 `unb` 字段
 
 </details>
 
-### 3. Add to MCP Client
+<details>
+<summary>雪球（点击展开）</summary>
 
-**Claude Desktop** (`claude_desktop_config.json`):
+- **无需配置！** webmirage 自动从雪球首页获取公共 Cookie。
+- 如需个性化数据（自选股），在 Chrome 中登录并安装 `browser-cookie3` 即可。
+
+</details>
+
+### 3. 添加到 MCP 客户端
+
+**Claude Desktop**（`claude_desktop_config.json`）：
 
 ```json
 {
@@ -169,39 +173,39 @@ xianyu_cookie: "_m_h5_tk=xxx; unb=12345; ..."
       "args": ["-m", "webmirage"],
       "cwd": "/path/to/webmirage",
       "env": {
-        "TWITTER_AUTH_TOKEN": "your_auth_token",
-        "TWITTER_CT0": "your_ct0"
+        "TWITTER_AUTH_TOKEN": "你的auth_token",
+        "TWITTER_CT0": "你的ct0"
       }
     }
   }
 }
 ```
 
-**Cursor / Windsurf / opencode** — Add the same config in your MCP settings.
+**Cursor / Windsurf / opencode** — 在 MCP 设置中添加相同的配置。
 
-> Using `~/.webmirage/config.yaml` for cookies? Skip the `env` block entirely.
+> 如果用 `~/.webmirage/config.yaml` 管理 Cookie，可以省略 `env` 块。
 
-### 4. Use It
+### 4. 开始用
 
-Just ask your AI:
+直接对 AI 说：
 
-**Twitter:**
-- "Search Twitter for discussions about Claude Code"
-- "Get the latest tweets from @elonmusk"
-- "Read this tweet: https://x.com/..."
-- "What's my watchlist feed?"
+**Twitter：**
+- "搜索 Twitter 上关于 Claude Code 的讨论"
+- "获取 @elonmusk 的最新推文"
+- "读一下这条推文：https://x.com/..."
+- "拉取我关注博主的最新推文"
 
-**Reddit:**
-- "Search Reddit for discussions about opencode bugs"
-- "What's hot in r/MachineLearning?"
-- "Read this Reddit post's comments"
+**Reddit：**
+- "在 Reddit 上搜索关于 opencode 的讨论"
+- "r/MachineLearning 有什么热帖？"
+- "读一下这个 Reddit 帖子的评论"
 
-**Xueqiu:**
-- "What's the PE ratio and market cap of Moutai?"
-- "What are the hot stocks on Xueqiu?"
-- "Show me my watchlist quotes"
+**雪球：**
+- "查一下茅台的 PE 和市值"
+- "雪球上热门的股票有哪些？"
+- "看看我的自选股行情"
 
-**Xianyu:**
+**闲鱼：**
 - "搜闲鱼上的 16G 迷你主机，按评分排名"
 - "查看这个闲鱼商品的详情"
 - "看看我闲鱼上挂了哪些东西"
@@ -209,101 +213,101 @@ Just ask your AI:
 
 ---
 
-## Design Philosophy
+## 设计理念
 
-**webmirage is not an API wrapper — it's a cookie-driven anti-detection data layer.**
+**webmirage 不是一个 API 包装层，是一个 Cookie 驱动的反检测数据层。**
 
-Most tools either use official APIs (expensive, rate-limited, requires approval) or run Playwright browsers (heavy, slow, fragile). webmirage takes a third path: **browser cookies + TLS fingerprint impersonation, calling platforms' internal APIs directly** — the same requests your browser makes when you open a webpage, but usable by AI in the terminal.
+市面上的工具要么用官方 API（要钱、要审批、有限速），要么用 Playwright 跑浏览器（重、慢、容易崩）。webmirage 走第三条路：**用浏览器 Cookie + TLS 指纹模拟，直接调平台的内部 API**——跟你在浏览器里打开网页一样的请求，AI 却能在终端里直接用。
 
-### Plugin Architecture
+### 🔌 每个平台都是独立插件
 
 ```
 webmirage/
-├── __main__.py              # Entry point: python -m webmirage
-├── server.py                # MCP server — discovers & registers platform tools
-├── config.py                # Config management (env vars + YAML)
+├── __main__.py              # 入口：python -m webmirage
+├── server.py                # MCP 服务器 — 发现并注册平台工具
+├── config.py                # 配置管理（环境变量 + YAML）
 └── platforms/
-    ├── base.py              # PlatformTools interface (implement to add platforms)
-    ├── twitter/             # 9 tools — internal GraphQL API + TLS impersonation
-    │   ├── graphql.py       #   queryId management (hardcoded → community → JS scan)
-    │   ├── auth.py          #   Cookie authentication
-    │   ├── client.py        #   curl_cffi Chrome TLS fingerprint
-    │   └── tools.py         #   Tool definitions
-    ├── reddit/              # 5 tools — JSON API + browser cookie extraction
+    ├── base.py              # PlatformTools 接口（实现它就能加新平台）
+    ├── twitter/             # 9 个工具 — GraphQL 内部 API + TLS 指纹模拟
+    │   ├── graphql.py       #   queryId 管理（硬编码 → 社区源 → JS 扫描）
+    │   ├── auth.py          #   Cookie 认证
+    │   ├── client.py        #   curl_cffi 模拟 Chrome TLS 握手
+    │   └── tools.py         #   工具定义
+    ├── reddit/              # 5 个工具 — JSON API + 浏览器 Cookie 提取
     │   ├── client.py        #   urllib + CookieJar
-    │   └── tools.py         #   Tool definitions
-    ├── xueqiu/              # 5 tools — public JSON API + watchlist
-    │   ├── client.py        #   Auto public cookie
-    │   └── tools.py         #   Quotes/search/hot posts/hot stocks/watchlist
-    └── xianyu/              # 5 tools — mtop H5 signature direct call + scoring
-        ├── client.py        #   MD5 signature + cookie auth
-        ├── scorer.py        #   Scoring system v3.0
-        └── tools.py         #   Search/score/detail/my items/delivery
+    │   └── tools.py         #   工具定义
+    ├── xueqiu/              # 5 个工具 — 公共 JSON API + 自选股
+    │   ├── client.py        #   自动获取公共 Cookie
+    │   └── tools.py         #   行情/搜索/热帖/热门股/自选股
+    └── xianyu/              # 5 个工具 — mtop H5 签名直调 + 智能评分
+        ├── client.py        #   MD5 签名 + Cookie 认证
+        ├── scorer.py        #   评分系统 v3.0
+        └── tools.py         #   搜索/评分/详情/我的商品/发货
 ```
 
-### Anti-Detection Stack
+### 反检测技术栈
 
-| Layer | Technology | Description |
-|-------|-----------|-------------|
-| TLS fingerprint | `curl_cffi` | Impersonates Chrome JA3/JA4 handshake — platform can't tell it's not a browser |
-| Request headers | `x-client-transaction-id` | Twitter frontend JS transaction ID, auto-generated per request |
-| Cookies | Full forwarding | Not just `auth_token` + `ct0`, but the complete cookie chain |
-| Request rhythm | Random jitter | Random delays between requests, simulating human pacing |
-| Rate limiting | Exponential backoff | Auto-retry on HTTP 429 with progressive backoff |
+| 层 | 技术 | 说明 |
+|----|------|------|
+| TLS 指纹 | `curl_cffi` | 模拟 Chrome 的 JA3/JA4 握手指纹，平台看不出你不是浏览器 |
+| 请求头 | `x-client-transaction-id` | Twitter 前端 JS 生成的事务 ID，每次请求自动生成 |
+| Cookie | 完整转发 | 不是只发 `auth_token` + `ct0`，而是完整 Cookie 链 |
+| 请求节奏 | 随机抖动 | 请求间随机延迟，模拟人类操作节奏 |
+| 限速 | 指数退避 | HTTP 429 自动重试，逐步退避 |
 
-### Platform Strategies
+### 各平台技术路线
 
-| Platform | Route | Why |
-|----------|-------|-----|
-| Twitter/X | Internal GraphQL API | Official API v2 costs $100/mo; internal API is the same one x.com uses |
-| Reddit | `.json` endpoints + cookie | Anonymous access blocked (403); login cookie is the stable path |
-| Xueqiu | Public JSON API | Homepage visit auto-issues cookie; public data needs no login |
-| Xianyu | mtop H5 API + MD5 signature | No Playwright/Node.js needed, pure HTTP with `sign=md5(token&t&appKey&data)` |
+| 平台 | 路线 | 为什么这么选 |
+|------|------|-----------|
+| Twitter/X | 内部 GraphQL API | 官方 API v2 要 $100/月；内部 API 跟网页前端用同一个 |
+| Reddit | `.json` 端点 + Cookie | 匿名接口被封（403）；登录态 Cookie 是当前最稳路径 |
+| 雪球 | 公共 JSON API | 首页访问自动下发 Cookie，公共数据无需登录 |
+| 闲鱼 | mtop H5 API + MD5 签名 | 不需要 Playwright/Node.js，纯 HTTP 直调，签名 = `md5(token&t&appKey&data)` |
 
-> 📌 These are current selections based on real-world testing. Platforms change anti-bot, we follow — plugin architecture means swapping a route is one file.
+> 📌 这些都是基于真机实测的当前选型。平台改了反爬我们跟着调，插件架构让换路线只改一个文件。
 
 ---
 
-## Xianyu Intelligent Scoring System v3.0
+## 闲鱼智能评分系统
 
-The `xianyu_score_search` tool implements a unique scoring system designed for human-AI collaboration:
+`xianyu_score_search` 工具实现了一套独特的、为人机协作设计的评分系统：
 
-| Dimension | Score | Who scores | Description |
-|-----------|-------|------------|-------------|
-| **Timeliness** | 30 | Code (auto) | Freshness x Scarcity matrix, 8-day inflection point |
-| **Compliance** | 10 | Code (auto) | Has title/price/description/images/not spam |
-| **Value for money** | 60 | AI (assess) | Code provides structured specs, AI does cross-product comparison |
+| 维度 | 分值 | 评分方 | 说明 |
+|------|------|--------|------|
+| **时效性** | 30 | 代码自动 | 新鲜度 × 稀缺度组合矩阵，8 天后稀缺方向反转 |
+| **基础合规** | 10 | 代码自动 | 有标题/价格/描述/图片/非垃圾 |
+| **性价比** | 60 | AI 评估 | 代码提供结构化规格，AI 做跨商品横向对比 |
 
-**Timeliness matrix — Freshness x Scarcity:**
+**时效性矩阵 — 新鲜度 × 稀缺度：**
 
 ```
-           0-3 wants   4-10    11-20    20+
-  Today       30          25       20      15    ← New + few wants = hidden gem
-  2-3 days    27          22       17      12
-  4-7 days    20          16       12       8
-  8+ days     10          12       14      16    ← Reversal: old + many wants = real demand
+           0-3人想要   4-10人   11-20人   20+人
+  今天       30          25       20       15    ← 新+人少=捡漏机会
+  2-3天      27          22       17       12
+  4-7天      20          16       12        8
+  8天+       10          12       14       16    ← 反转：旧+人多=有真实需求
 ```
 
-- **New + few wants** = High score (just listed, not grabbed yet — opportunity)
-- **Old + few wants** = Low score (stale listing, something might be wrong)
-- **Old + many wants** = Medium score (genuine demand, but might already be taken)
+- **新 + 想要人少** = 高分（刚上架还没被抢，捡漏机会）
+- **旧 + 想要人少** = 低分（挂了好几天没人要，可能有坑）
+- **旧 + 想要人多** = 中分（有真实需求，但可能已经被聊走了）
 
-**Spec auto-extraction — from title/description:**
+**规格自动提取 — 从标题/描述中识别：**
 
-- Chips: Apple Silicon (M1-M4), Intel (i3/i5/i7/i9), AMD Ryzen, Snapdragon
-- RAM + Storage: `16+256` -> 16G RAM, 256G Storage
-- Condition: 全新/99新/9成新/8成新
-- Battery health, cycle count, warranty status
-- More: color, accessories, version, screen specs, model...
+- 芯片：Apple Silicon（M1-M4）、Intel（i3/i5/i7/i9）、AMD Ryzen、骁龙
+- 内存 + 存储：`16+256` → 16G 内存、256G 存储
+- 成色：全新/99新/9成新/8成新
+- 电池健康度、循环次数、保修状态
+- 更多：颜色、配件、版本、屏幕规格、型号……
 
-**Philosophy: Code does what code is good at (extraction, matrix scoring), leaves cross-product comparison to AI.**
+**设计理念：代码做代码擅长的（提取、矩阵评分），把跨商品综合判断留给 AI。**
 
 ---
 
-## Extending: Add a New Platform
+## 扩展：添加新平台
 
-1. Create `webmirage/platforms/<name>/` package
-2. Implement `PlatformTools` subclass in `tools.py`:
+1. 创建 `webmirage/platforms/<name>/` 包
+2. 实现 `PlatformTools` 子类：
 
 ```python
 from ..base import PlatformTools
@@ -322,7 +326,7 @@ class MyPlatformTools(PlatformTools):
         ...
 ```
 
-3. Register in `webmirage/server.py`:
+3. 在 `webmirage/server.py` 中注册：
 
 ```python
 ALL_PLATFORMS: list[PlatformTools] = [
@@ -330,34 +334,34 @@ ALL_PLATFORMS: list[PlatformTools] = [
     RedditTools(),
     XueqiuTools(),
     XianyuTools(),
-    MyPlatformTools(),   # <- add here
+    MyPlatformTools(),   # ← 在这里添加
 ]
 ```
 
 ---
 
-## Security
+## 安全性
 
-| Measure | Description |
-|---------|-------------|
-| 🔒 **Local credentials** | Cookies stored in `~/.webmirage/config.yaml` or `.env` only, never uploaded |
-| 👀 **Fully open source** | Transparent code, auditable at any time |
-| 🔍 **No intermediary** | All requests go directly to the target platform, no third-party server |
-| 🧩 **Pluggable** | Don't trust a component? Swap its platform file, no impact on others |
-| 📦 **Public token** | Twitter Bearer token in source is the public one embedded in x.com's JS — not a secret |
+| 措施 | 说明 |
+|------|------|
+| 🔒 **凭据本地存储** | Cookie 只存在你本机 `~/.webmirage/config.yaml` 或 `.env`，不上传不外传 |
+| 👀 **完全开源** | 代码透明，随时可审查 |
+| 🔍 **无中间服务器** | 所有请求直接发往目标平台，不经过任何第三方 |
+| 🧩 **可插拔架构** | 不信任某个组件？换掉对应的 platform 文件即可 |
+| 📦 **公钥非密钥** | 源码中的 Twitter Bearer token 是 x.com 前端 JS 公开嵌入的，非密钥 |
 
-> ⚠️ **Ban risk:** Platforms like Twitter may detect non-browser API calls. Use a **dedicated secondary account**. Reasons: 1) Platform may limit/ban accounts making non-browser API calls; 2) Cookies = full login access, a secondary account limits exposure if leaked.
+> ⚠️ **封号风险：** 使用 Cookie 的平台（Twitter、闲鱼等），建议使用**专用小号**。原因：1) 平台可能检测非浏览器 API 调用导致封号；2) Cookie 等同于完整登录权限，用小号可限制泄露影响范围。
 
 ---
 
-## Requirements
+## 依赖要求
 
 - Python 3.10+
-- Dependencies: `mcp`, `curl_cffi`, `xclienttransaction`, `beautifulsoup4`, `loguru`, `pyyaml`
-- Optional: `browser-cookie3` (for Reddit/Xueqiu browser cookie auto-extraction)
+- 核心：`mcp`、`curl_cffi`、`xclienttransaction`、`beautifulsoup4`、`loguru`、`pyyaml`
+- 可选：`browser-cookie3`（Reddit / 雪球的浏览器 Cookie 自动提取）
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)
