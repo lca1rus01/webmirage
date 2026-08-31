@@ -62,3 +62,13 @@ class PlatformTools(ABC):
             Text content to return to the AI agent.
         """
         ...
+
+    def reload(self) -> None:
+        """Drop cached resources so the next call picks up fresh config.
+
+        Called when configuration is reloaded (webmirage_reload_config).
+        Subclasses that cache HTTP clients should clear them here;
+        clients are then lazily re-created with the new credentials.
+        """
+        # Default: nothing to reload.
+        return None

@@ -48,13 +48,36 @@ def _load_config_file() -> dict[str, Any]:
 
 
 _config_cache: dict[str, Any] | None = None
+_config_mtime: float | None = None
+
+
+def _config_file_mtime() -> float | None:
+    """Return current mtime of the config file (None if unreadable)."""
+    try:
+        return CONFIG_FILE.stat().st_mtime
+    except OSError:
+        return None
+
+
+def invalidate_config_cache() -> None:
+    """Force the next get_config() call to re-read the config file."""
+    global _config_cache
+    _config_cache = None
 
 
 def get_config() -> dict[str, Any]:
-    """Get merged config: defaults < config file < env vars."""
-    global _config_cache
+    """Get merged config: defaults < config file < env vars.
+
+    Hot-reloads automatically when the config file changes on disk
+    (mtime check), so cookie/watchlist updates take effect without
+    restarting the MCP server.
+    """
+    global _config_cache, _config_mtime
     if _config_cache is not None:
-        return _config_cache
+        if _config_file_mtime() == _config_mtime:
+            return _config_cache
+        logger.info("Config file changed on disk - reloading")
+        _config_cache = None
 
     _load_dotenv()
     file_config = _load_config_file()
@@ -107,6 +130,7 @@ def get_config() -> dict[str, Any]:
     )
 
     _config_cache = config
+    _config_mtime = _config_file_mtime()
     return config
 
 
@@ -116,9 +140,10 @@ def save_config(updates: dict[str, Any]) -> None:
     current = _load_config_file()
     current.update(updates)
     CONFIG_FILE.write_text(yaml.safe_dump(current, allow_unicode=True), encoding="utf-8")
-    # Invalidate cache
-    global _config_cache
+    # Invalidate cache (mtime will refresh on next get_config)
+    global _config_cache, _config_mtime
     _config_cache = None
+    _config_mtime = None
     logger.info("Config saved to {}", CONFIG_FILE)
 
 

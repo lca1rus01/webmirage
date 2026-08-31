@@ -34,11 +34,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 import re
 import time
 import urllib.parse
 import urllib.request
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 
@@ -149,10 +150,12 @@ class XianyuClient:
         data: dict[str, Any],
         extra_params: dict[str, str] | None = None,
         retry_on_token: bool = True,
+        retry_on_risk: bool = True,
     ) -> dict[str, Any]:
         """发起一次 mtop POST 请求并返回解析后的 JSON。
 
-        自动签名、自动携带 cookie、自动吸收 set-cookie、token 失效重试一次。
+        自动签名、自动携带 cookie、自动吸收 set-cookie、token 失效重试一次、
+        风控拦截(RGV587)退避后重试一次。
         """
         if not self.is_configured():
             raise XianyuError(
@@ -210,15 +213,37 @@ class XianyuClient:
 
         ret = parsed.get("ret") or []
         ret_msg = ret[0] if ret else ""
+        ret_upper = str(ret_msg).upper()
 
         # token 失效：刷新 token（set-cookie 已吸收新 _m_h5_tk）后重试一次
-        if retry_on_token and "FAIL_SYS_TOKEN" in str(ret_msg).upper():
+        if retry_on_token and "FAIL_SYS_TOKEN" in ret_upper:
             logger.warning("mtop token 失效({})，刷新后重试一次", ret_msg)
             return self._mtop_request(
-                api, version, data, extra_params, retry_on_token=False
+                api, version, data, extra_params,
+                retry_on_token=False, retry_on_risk=retry_on_risk,
+            )
+
+        # 风控拦截（RGV587）：随机退避 3-8 秒后重试一次
+        if retry_on_risk and "RGV587" in ret_upper:
+            wait = random.uniform(3.0, 8.0)
+            logger.warning("闲鱼风控拦截({})，{:.1f}s 后重试一次", ret_msg, wait)
+            time.sleep(wait)
+            return self._mtop_request(
+                api, version, data, extra_params,
+                retry_on_token=retry_on_token, retry_on_risk=False,
             )
 
         if ret_msg and not ret_msg.startswith("SUCCESS"):
+            if "RGV587" in ret_upper:
+                raise XianyuError(
+                    "闲鱼风控拦截(RGV587)：重试后仍被拒绝。通常是请求频率过高"
+                    "或 cookie 签名 token(_m_h5_tk) 过期。\n"
+                    "建议：\n"
+                    "  1) 等待 10-30 分钟降低请求频率后再试\n"
+                    "  2) 浏览器重新登录 goofish.com，更新 "
+                    "~/.webmirage/config.yaml 中的 xianyu_cookie\n"
+                    "  3) 更新后调用 webmirage_reload_config 工具热加载新 cookie"
+                )
             raise XianyuError("闲鱼接口返回错误: {}".format(ret_msg))
 
         return parsed

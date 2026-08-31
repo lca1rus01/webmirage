@@ -42,6 +42,10 @@ class XianyuTools(PlatformTools):
         cookie = c.get("xianyu_cookie", "")
         return bool(cookie and "_m_h5_tk" in cookie and "unb" in cookie)
 
+    def reload(self) -> None:
+        """Drop cached client so the next call uses fresh config/cookies."""
+        self._client = None
+
     def _get_client(self) -> XianyuClient:
         if self._client is None:
             c = cfg.get_config()

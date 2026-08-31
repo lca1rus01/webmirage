@@ -9,6 +9,7 @@ Exposes four tools to AI agents:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -34,6 +35,10 @@ class TwitterTools(PlatformTools):
     def is_available(self) -> bool:
         """Check if Twitter credentials are configured."""
         return cfg.is_twitter_configured()
+
+    def reload(self) -> None:
+        """Drop cached client so the next call uses fresh config/cookies."""
+        self._client = None
 
     def _get_client(self) -> TwitterClient:
         """Get or create a lazy-initialized TwitterClient."""
@@ -271,51 +276,58 @@ class TwitterTools(PlatformTools):
             client = self._get_client()
 
             if tool_name == "twitter_search":
+                tweets = await asyncio.to_thread(
+                    client.search_tweets,
+                    query=arguments["query"],
+                    max_results=arguments.get("max_results", 10),
+                    product=arguments.get("search_type", "Top"),
+                )
                 return _format_tweets(
                     "Search: \"{}\"".format(arguments["query"]),
-                    client.search_tweets(
-                        query=arguments["query"],
-                        max_results=arguments.get("max_results", 10),
-                        product=arguments.get("search_type", "Top"),
-                    ),
+                    tweets,
                 )
 
             elif tool_name == "twitter_user_posts":
+                tweets = await asyncio.to_thread(
+                    client.get_user_posts,
+                    username=arguments["username"],
+                    max_results=arguments.get("max_results", 20),
+                )
                 return _format_tweets(
                     "Tweets from @{}".format(arguments["username"]),
-                    client.get_user_posts(
-                        username=arguments["username"],
-                        max_results=arguments.get("max_results", 20),
-                    ),
+                    tweets,
                 )
 
             elif tool_name == "twitter_tweet":
-                return _format_tweets(
-                    "Tweet thread",
-                    client.get_tweet_detail(
-                        tweet_id=arguments["tweet_id_or_url"],
-                        max_results=arguments.get("max_results", 20),
-                    ),
+                tweets = await asyncio.to_thread(
+                    client.get_tweet_detail,
+                    tweet_id=arguments["tweet_id_or_url"],
+                    max_results=arguments.get("max_results", 20),
                 )
+                return _format_tweets("Tweet thread", tweets)
 
             elif tool_name == "twitter_user_profile":
-                profile = client.get_user_profile(arguments["username"])
+                profile = await asyncio.to_thread(
+                    client.get_user_profile, arguments["username"]
+                )
                 return profile.to_text()
 
             elif tool_name == "twitter_me":
-                profile = client.get_me()
+                profile = await asyncio.to_thread(client.get_me)
                 return profile.to_text()
 
             elif tool_name == "twitter_my_following":
-                me = client.get_me()
-                users = client.get_following(
+                me = await asyncio.to_thread(client.get_me)
+                users = await asyncio.to_thread(
+                    client.get_following,
                     me.screen_name,
                     max_results=arguments.get("max_results", 50),
                 )
                 return _format_users("Your following list", users)
 
             elif tool_name == "twitter_following":
-                users = client.get_following(
+                users = await asyncio.to_thread(
+                    client.get_following,
                     arguments["username"],
                     max_results=arguments.get("max_results", 50),
                 )
@@ -325,7 +337,8 @@ class TwitterTools(PlatformTools):
                 )
 
             elif tool_name == "twitter_followers":
-                users = client.get_followers(
+                users = await asyncio.to_thread(
+                    client.get_followers,
                     arguments["username"],
                     max_results=arguments.get("max_results", 20),
                 )
@@ -335,7 +348,8 @@ class TwitterTools(PlatformTools):
                 )
 
             elif tool_name == "twitter_feed":
-                tweets = client.get_feed(
+                tweets = await asyncio.to_thread(
+                    client.get_feed,
                     max_per_user=arguments.get("max_per_user", 5),
                 )
                 if not tweets:

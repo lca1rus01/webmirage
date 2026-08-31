@@ -23,16 +23,40 @@ from .platforms.twitter.tools import TwitterTools
 from .platforms.xueqiu.tools import XueqiuTools
 from .platforms.xianyu.tools import XianyuTools
 from .platforms.reddit.tools import RedditTools
+from .platforms.system.tools import SystemTools
 
 # ── Platform registry ────────────────────────────────────────────────────
 # To add a new platform, import its tools class and add it here.
+_system_tools = SystemTools()
+
 ALL_PLATFORMS: list[PlatformTools] = [
+    _system_tools,
     TwitterTools(),
     XueqiuTools(),
     XianyuTools(),
     RedditTools(),
     # YouTubeTools(),     # future
 ]
+
+
+def _reload_all_platforms() -> list[str]:
+    """Reload every registered platform (config cache already invalidated).
+
+    Returns the list of platform names whose cached clients were dropped.
+    """
+    names: list[str] = []
+    for platform in ALL_PLATFORMS:
+        try:
+            platform.reload()
+            names.append(platform.name)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Failed to reload platform '{}': {}", platform.name, exc
+            )
+    return names
+
+
+_system_tools.set_reload_callback(_reload_all_platforms)
 
 
 def _discover_platforms() -> tuple[list[PlatformTools], list[str]]:

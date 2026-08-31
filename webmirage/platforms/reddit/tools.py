@@ -10,6 +10,7 @@ Exposes five tools to AI agents:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any
@@ -35,6 +36,10 @@ class RedditTools(PlatformTools):
     def is_available(self) -> bool:
         """Reddit is always available - anonymous fallback works for some endpoints."""
         return True
+
+    def reload(self) -> None:
+        """Drop cached client so the next call uses fresh config/cookies."""
+        self._client = None
 
     def _get_client(self) -> RedditClient:
         """Get or create a lazy-initialized RedditClient."""
@@ -205,7 +210,8 @@ class RedditTools(PlatformTools):
             client = self._get_client()
 
             if tool_name == "reddit_search":
-                posts = client.search(
+                posts = await asyncio.to_thread(
+                    client.search,
                     query=arguments["query"],
                     sort=arguments.get("sort", "relevance"),
                     limit=arguments.get("limit", 25),
@@ -218,7 +224,8 @@ class RedditTools(PlatformTools):
                 )
 
             elif tool_name == "reddit_subreddit_posts":
-                posts, after = client.get_subreddit_posts(
+                posts, after = await asyncio.to_thread(
+                    client.get_subreddit_posts,
                     subreddit=arguments["subreddit"],
                     sort=arguments.get("sort", "hot"),
                     limit=arguments.get("limit", 25),
@@ -229,7 +236,8 @@ class RedditTools(PlatformTools):
                 )
 
             elif tool_name == "reddit_post":
-                result = client.get_post(
+                result = await asyncio.to_thread(
+                    client.get_post,
                     post_id=arguments["post_id"],
                     sort=arguments.get("sort", "confidence"),
                     limit=arguments.get("limit", 30),
@@ -237,11 +245,14 @@ class RedditTools(PlatformTools):
                 return _format_post_detail(result)
 
             elif tool_name == "reddit_user_profile":
-                profile = client.get_user_profile(arguments["username"])
+                profile = await asyncio.to_thread(
+                    client.get_user_profile, arguments["username"]
+                )
                 return _format_profile(profile)
 
             elif tool_name == "reddit_user_posts":
-                posts = client.get_user_posts(
+                posts = await asyncio.to_thread(
+                    client.get_user_posts,
                     username=arguments["username"],
                     limit=arguments.get("limit", 25),
                 )

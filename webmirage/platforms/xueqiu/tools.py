@@ -10,6 +10,7 @@ Exposes five tools to AI agents:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -34,6 +35,10 @@ class XueqiuTools(PlatformTools):
     def is_available(self) -> bool:
         """Xueqiu is always available - homepage fallback yields public cookies."""
         return True
+
+    def reload(self) -> None:
+        """Drop cached client so the next call uses fresh config/cookies."""
+        self._client = None
 
     def _get_client(self) -> XueqiuClient:
         """Get or create a lazy-initialized XueqiuClient."""
@@ -175,25 +180,27 @@ class XueqiuTools(PlatformTools):
             client = self._get_client()
 
             if tool_name == "xueqiu_quote":
-                return _format_quote(client.get_quote(arguments["symbol"]))
+                quote = await asyncio.to_thread(client.get_quote, arguments["symbol"])
+                return _format_quote(quote)
 
             elif tool_name == "xueqiu_search":
-                return _format_search_results(
-                    arguments["query"],
-                    client.search_stock(
-                        query=arguments["query"],
-                        limit=arguments.get("limit", 10),
-                    ),
+                results = await asyncio.to_thread(
+                    client.search_stock,
+                    query=arguments["query"],
+                    limit=arguments.get("limit", 10),
                 )
+                return _format_search_results(arguments["query"], results)
 
             elif tool_name == "xueqiu_hot_posts":
-                posts = client.get_hot_posts(
+                posts = await asyncio.to_thread(
+                    client.get_hot_posts,
                     limit=arguments.get("limit", 20),
                 )
                 return _format_posts(posts)
 
             elif tool_name == "xueqiu_hot_stocks":
-                stocks = client.get_hot_stocks(
+                stocks = await asyncio.to_thread(
+                    client.get_hot_stocks,
                     limit=arguments.get("limit", 10),
                     stock_type=arguments.get("stock_type", 10),
                 )
@@ -212,13 +219,9 @@ class XueqiuTools(PlatformTools):
                         "    - 00700\n"
                         "    - AAPL"
                     )
-                quotes = []
-                for symbol in watchlist:
-                    try:
-                        quotes.append(client.get_quote(symbol))
-                    except Exception as exc:
-                        logger.warning("Failed to fetch quote for {}: {}", symbol, exc)
-                        quotes.append({"symbol": symbol, "name": "", "error": str(exc)})
+                quotes = await asyncio.to_thread(
+                    _fetch_watchlist_quotes, client, watchlist
+                )
                 return _format_watchlist(quotes)
 
             else:
@@ -229,6 +232,20 @@ class XueqiuTools(PlatformTools):
         except Exception as exc:
             logger.exception("Unexpected error in tool call")
             return "Error: {}".format(exc)
+
+
+def _fetch_watchlist_quotes(
+    client: XueqiuClient, watchlist: list[str]
+) -> list[dict[str, Any]]:
+    """Fetch quotes for every watchlist symbol (blocking, run in thread)."""
+    quotes: list[dict[str, Any]] = []
+    for symbol in watchlist:
+        try:
+            quotes.append(client.get_quote(symbol))
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to fetch quote for {}: {}", symbol, exc)
+            quotes.append({"symbol": symbol, "name": "", "error": str(exc)})
+    return quotes
 
 
 # ── Formatting helpers ───────────────────────────────────────────────────
