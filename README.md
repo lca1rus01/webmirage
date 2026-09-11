@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  网蜃楼 — 帮 AI 从互联网的海市蜃楼中捕捉真实信息
+   网蜃楼 — 帮 AI 从互联网的海市蜃楼中捕捉真实信息
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 
 **webmirage 把这件事变成一个 MCP 服务器：**
 
-装好、配好 Cookie，你的 AI 就能搜推特、刷 Reddit、查股票行情、逛闲鱼——24 个工具，一个入口。
+装好、配好 Cookie，你的 AI 就能搜推特、刷 Reddit、查股票行情、逛闲鱼、研究 GitHub 项目——33 个工具，一个入口。
 
 ---
 
@@ -60,7 +60,8 @@ AI Agent 已经能帮你写代码、改文档、管项目——但你让它去�
 | 📖 **Reddit** | 5 | 搜索帖子、版块热帖、帖子+评论、用户画像、用户发帖 | Cookie（reddit_session），或装 browser-cookie3 自动提取 |
 | 📈 **雪球** | 5 | 实时行情+PE/PB/EPS、股票搜索、热帖、热门股排行、自选股批量行情 | 无需配置（自动获取公共 Cookie） |
 | 🛒 **闲鱼** | 5 | 商品搜索、智能评分排名、商品详情、我的在售列表、确认发货 | Cookie（含 _m_h5_tk + unb） |
-| **合计** | **24** | | |
+| 🐙 **GitHub** | 8 | 仓库搜索、仓库详情、README、Issue、Release、PR、仓库对比 | 可选 Token（匿名只读可用） |
+| **合计** | **33** | | |
 
 > 🍪 所有平台都用浏览器 Cookie 认证，不需要申请任何官方 API。Cookie 只存你本地，不上传不外传。
 >
@@ -117,6 +118,10 @@ xueqiu_watchlist:
   - AAPL
 
 xianyu_cookie: "_m_h5_tk=xxx; unb=12345; ..."
+
+# GitHub Token 可选；建议使用 Fine-grained PAT，仅授予必要的只读权限
+github_tokens:
+  - "github_pat_xxx"
 ```
 
 ### Cookie 怎么获取？

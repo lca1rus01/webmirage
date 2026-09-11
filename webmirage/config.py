@@ -129,6 +129,23 @@ def get_config() -> dict[str, Any]:
         "REDDIT_COOKIE", file_config.get("reddit_cookie", "")
     )
 
+    # GitHub config. Anonymous read-only requests work without a token;
+    # tokens raise the API rate limit and may be supplied as a list or
+    # through GITHUB_TOKEN, GITHUB_TOKEN_2, and GITHUB_TOKEN_3.
+    github_tokens = file_config.get("github_tokens", [])
+    if isinstance(github_tokens, str):
+        github_tokens = [github_tokens]
+    if not isinstance(github_tokens, list):
+        github_tokens = []
+    config["github_tokens"] = [
+        token for token in [
+            os.environ.get("GITHUB_TOKEN", ""),
+            os.environ.get("GITHUB_TOKEN_2", ""),
+            os.environ.get("GITHUB_TOKEN_3", ""),
+            *github_tokens,
+        ] if isinstance(token, str) and token
+    ]
+
     _config_cache = config
     _config_mtime = _config_file_mtime()
     return config
