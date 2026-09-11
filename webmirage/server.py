@@ -24,6 +24,7 @@ from .platforms.xueqiu.tools import XueqiuTools
 from .platforms.xianyu.tools import XianyuTools
 from .platforms.reddit.tools import RedditTools
 from .platforms.system.tools import SystemTools
+from .platforms.github.tools import GitHubTools
 
 # ── Platform registry ────────────────────────────────────────────────────
 # To add a new platform, import its tools class and add it here.
@@ -35,6 +36,7 @@ ALL_PLATFORMS: list[PlatformTools] = [
     XueqiuTools(),
     XianyuTools(),
     RedditTools(),
+    GitHubTools(),
     # YouTubeTools(),     # future
 ]
 
@@ -84,7 +86,6 @@ def _discover_platforms() -> tuple[list[PlatformTools], list[str]]:
 
 def create_server() -> Server:
     """Create and configure the MCP server with all available platform tools."""
-    server = Server("webmirage")
     platforms, warnings = _discover_platforms()
 
     # Collect all tool definitions from available platforms
@@ -107,54 +108,70 @@ def create_server() -> Server:
         [p.name for p in platforms],
     )
 
-    @server.list_tools()
-    async def list_tools() -> list[types.Tool]:
+    async def list_tools(
+        _ctx: Any,
+        _params: types.PaginatedRequestParams | None,
+    ) -> types.ListToolsResult:
         """Return all available tools to the MCP client."""
-        return [
-            types.Tool(
-                name=tool_def["name"],
-                description=tool_def["description"],
-                inputSchema=tool_def["inputSchema"],
-            )
-            for tool_def in all_tool_defs
-        ]
+        return types.ListToolsResult(
+            tools=[
+                types.Tool(
+                    name=tool_def["name"],
+                    description=tool_def["description"],
+                    inputSchema=tool_def["inputSchema"],
+                )
+                for tool_def in all_tool_defs
+            ]
+        )
 
-    @server.call_tool()
     async def call_tool(
-        name: str,
-        arguments: dict[str, Any] | None,
-    ) -> list[types.TextContent]:
+        _ctx: Any,
+        request: types.CallToolRequestParams,
+    ) -> types.CallToolResult:
         """Dispatch a tool call to the appropriate platform handler."""
-        arguments = arguments or {}
+        name = request.name
+        arguments = request.arguments or {}
 
         if name not in platform_by_tool:
             available_names = [td["name"] for td in all_tool_defs]
-            return [
-                types.TextContent(
-                    type="text",
-                    text=(
-                        "Error: Unknown tool '{}'. "
-                        "Available tools: {}".format(name, available_names)
-                    ),
-                )
-            ]
+            return types.CallToolResult(
+                content=[
+                    types.TextContent(
+                        type="text",
+                        text=(
+                            "Error: Unknown tool '{}'. "
+                            "Available tools: {}".format(name, available_names)
+                        ),
+                    )
+                ],
+                isError=True,
+            )
 
         platform = platform_by_tool[name]
         logger.info("Tool call: {} with args: {}", name, arguments)
 
         try:
             result = await platform.handle_call(name, arguments)
-            return [types.TextContent(type="text", text=result)]
+            return types.CallToolResult(
+                content=[types.TextContent(type="text", text=result)]
+            )
         except Exception as exc:
             logger.exception("Tool call failed: {}", name)
-            return [
-                types.TextContent(
-                    type="text",
-                    text="Error executing '{}': {}".format(name, exc),
-                )
-            ]
+            return types.CallToolResult(
+                content=[
+                    types.TextContent(
+                        type="text",
+                        text="Error executing '{}': {}".format(name, exc),
+                    )
+                ],
+                isError=True,
+            )
 
-    return server
+    return Server(
+        "webmirage",
+        on_list_tools=list_tools,
+        on_call_tool=call_tool,
+    )
 
 
 async def run_server() -> None:

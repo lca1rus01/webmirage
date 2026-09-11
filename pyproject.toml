@@ -23,7 +23,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=1.0",
+    "mcp>=2.0,<3.0",
     "curl_cffi>=0.7",
     "xclienttransaction>=1.0.1",
     "beautifulsoup4>=4.12",
