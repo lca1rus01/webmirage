@@ -183,3 +183,58 @@ async def run_server() -> None:
             write_stream,
             server.create_initialization_options(),
         )
+
+
+def create_sse_app() -> Any:
+    """Create a raw ASGI app serving the MCP server over SSE.
+
+    Endpoints:
+        GET  /sse           — open the SSE stream (MCP clients connect here)
+        POST /messages/...  — client-to-server messages (managed by transport)
+
+    Implemented as a plain ASGI callable (no Starlette routing) so it works
+    with any ASGI server and avoids Starlette Request API differences.
+    Requires 'uvicorn' (bundled with the ``mcp`` package).
+    """
+    from mcp.server.sse import SseServerTransport
+
+    server = create_server()
+    sse = SseServerTransport("/messages/")
+
+    async def app(scope: Any, receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            return
+        path = scope.get("path", "")
+        if path == "/sse":
+            async with sse.connect_sse(scope, receive, send) as (
+                read_stream,
+                write_stream,
+            ):
+                await server.run(
+                    read_stream,
+                    write_stream,
+                    server.create_initialization_options(),
+                )
+        elif path.startswith("/messages/"):
+            await sse.handle_post_message(scope, receive, send)
+        else:
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 404,
+                    "headers": [(b"content-type", b"text/plain")],
+                }
+            )
+            await send({"type": "http.response.body", "body": b"Not Found"})
+
+    return app
+
+
+async def run_sse_server(host: str, port: int) -> None:
+    """Run the MCP server over the SSE (HTTP) transport."""
+    import uvicorn
+
+    app = create_sse_app()
+    config = uvicorn.Config(app, host=host, port=port, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()

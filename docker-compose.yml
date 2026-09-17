@@ -1,0 +1,33 @@
+# webmirage — MCP server (SSE transport) on the home server.
+#
+# Requirements on the host:
+#   * mihomo (Clash Meta) proxy listening on 127.0.0.1:7890
+#   * ./config.yaml next to this file (cookies & watchlists)
+#
+# Proxy routing:
+#   * Twitter  — explicit TWITTER_PROXY (curl_cffi) -> mihomo -> proxy nodes
+#   * Reddit   — https_proxy env (urllib)          -> mihomo -> proxy nodes
+#   * GitHub   — no_proxy exclusion, stays DIRECT (fast from CN)
+#   * Xueqiu/Xianyu — https_proxy env             -> mihomo -> CN rules -> DIRECT
+
+services:
+  webmirage:
+    build: .
+    container_name: webmirage
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config.yaml:/root/.webmirage/config.yaml:ro
+    environment:
+      WEBMIRAGE_TRANSPORT: sse
+      WEBMIRAGE_HOST: 0.0.0.0
+      WEBMIRAGE_PORT: "8084"
+      # Outbound proxy (mihomo on host; host network makes it localhost)
+      TWITTER_PROXY: http://127.0.0.1:7890
+      http_proxy: http://127.0.0.1:7890
+      https_proxy: http://127.0.0.1:7890
+      HTTP_PROXY: http://127.0.0.1:7890
+      HTTPS_PROXY: http://127.0.0.1:7890
+      # Keep GitHub direct (fast & unblocked from CN home broadband)
+      no_proxy: localhost,127.0.0.1,github.com,api.github.com,objects.githubusercontent.com,raw.githubusercontent.com
+      NO_PROXY: localhost,127.0.0.1,github.com,api.github.com,objects.githubusercontent.com,raw.githubusercontent.com
