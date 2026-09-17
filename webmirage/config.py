@@ -156,7 +156,9 @@ def save_config(updates: dict[str, Any]) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     current = _load_config_file()
     current.update(updates)
-    CONFIG_FILE.write_text(yaml.safe_dump(current, allow_unicode=True), encoding="utf-8")
+    CONFIG_FILE.write_text(
+        yaml.safe_dump(current, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
     # Invalidate cache (mtime will refresh on next get_config)
     global _config_cache, _config_mtime
     _config_cache = None

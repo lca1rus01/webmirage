@@ -2,13 +2,18 @@
 #
 # Requirements on the host:
 #   * mihomo (Clash Meta) proxy listening on 127.0.0.1:7890
-#   * ./config.yaml next to this file (cookies & watchlists)
+#   * ./webmirage-config/config.yaml (cookies & watchlists)
 #
 # Proxy routing:
 #   * Twitter  — explicit TWITTER_PROXY (curl_cffi) -> mihomo -> proxy nodes
 #   * Reddit   — https_proxy env (urllib)          -> mihomo -> proxy nodes
 #   * GitHub   — no_proxy exclusion, stays DIRECT (fast from CN)
 #   * Xueqiu/Xianyu — https_proxy env             -> mihomo -> CN rules -> DIRECT
+#
+# Config is mounted as a DIRECTORY (read-write) so that:
+#   * webmirage_set_cookie can persist credential updates from inside
+#   * host-side edits stay visible to the container (single-file mounts
+#     break when the editor replaces the inode)
 
 services:
   webmirage:
@@ -17,7 +22,7 @@ services:
     restart: unless-stopped
     network_mode: host
     volumes:
-      - ./config.yaml:/root/.webmirage/config.yaml:ro
+      - ./webmirage-config:/root/.webmirage
     environment:
       WEBMIRAGE_TRANSPORT: sse
       WEBMIRAGE_HOST: 0.0.0.0

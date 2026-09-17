@@ -25,6 +25,7 @@ from .platforms.xianyu.tools import XianyuTools
 from .platforms.reddit.tools import RedditTools
 from .platforms.system.tools import SystemTools
 from .platforms.github.tools import GitHubTools
+from . import health
 
 # ── Platform registry ────────────────────────────────────────────────────
 # To add a new platform, import its tools class and add it here.
@@ -152,11 +153,17 @@ def create_server() -> Server:
 
         try:
             result = await platform.handle_call(name, arguments)
+            if platform.name != "system":
+                health.record(
+                    platform.name, not health.looks_like_error(result), result
+                )
             return types.CallToolResult(
                 content=[types.TextContent(type="text", text=result)]
             )
         except Exception as exc:
             logger.exception("Tool call failed: {}", name)
+            if platform.name != "system":
+                health.record(platform.name, False, str(exc))
             return types.CallToolResult(
                 content=[
                     types.TextContent(
