@@ -578,7 +578,8 @@ class TwitterClient:
             use_post=True,
         )
 
-    def get_feed(self, max_per_user: int = 5, usernames: list[str] | None = None) -> list[Tweet]:
+    def get_feed(self, max_per_user: int = 5, usernames: list[str] | None = None,
+                 since_hours: int | None = None) -> list[Tweet]:
         """Fetch recent tweets with fair coverage of each watched account.
 
         An explicit ``usernames`` list is scoped to this read-only call. It is
@@ -593,6 +594,7 @@ class TwitterClient:
         Args:
             max_per_user: Max tweets to fetch per account.
             usernames: Optional screen names that override the configured list.
+            since_hours: Optional freshness window. Older posts are excluded.
 
         Returns:
             Tweets in watchlist-coverage order; each account's own posts remain
@@ -608,6 +610,9 @@ class TwitterClient:
             username = str(username).lstrip("@")
             try:
                 tweets = self.get_user_posts(username, max_results=max_per_user)
+                if since_hours is not None:
+                    cutoff = time.time() - max(1, min(int(since_hours), 24 * 7)) * 3600
+                    tweets = [tweet for tweet in tweets if _parse_twitter_time(tweet.created_at) >= cutoff]
                 tweets.sort(key=lambda t: _parse_twitter_time(t.created_at), reverse=True)
                 per_account.append(tweets)
                 logger.info("Fetched {} tweets from @{}", len(tweets), username)

@@ -276,6 +276,12 @@ class TwitterTools(PlatformTools):
                             "minItems": 1,
                             "maxItems": 30,
                         },
+                        "since_hours": {
+                            "type": "integer",
+                            "description": "Optional freshness window. Excludes tweets older than this many hours (1-168); use it for daily monitoring.",
+                            "minimum": 1,
+                            "maximum": 168,
+                        },
                     },
                 },
             },
@@ -364,6 +370,7 @@ class TwitterTools(PlatformTools):
                     client.get_feed,
                     max_per_user=arguments.get("max_per_user", 5),
                     usernames=usernames if isinstance(usernames, list) else None,
+                    since_hours=arguments.get("since_hours"),
                 )
                 if not tweets:
                     return (
