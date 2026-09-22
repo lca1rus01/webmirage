@@ -43,6 +43,7 @@ class GitHubTools(PlatformTools):
             self._definition("github_get_issues", "List repository issues, optionally filtered by state, labels, and sorting.", {"repository": string, "state": string, "labels": string, "sort": string, "direction": string, "page": integer, "per_page": integer}, ["repository"]),
             self._definition("github_get_issue", "Get one GitHub issue including its body and metadata.", {"repository": string, "number": integer}, ["repository", "number"]),
             self._definition("github_get_releases", "List repository releases with version, date, and release notes.", {"repository": string, "page": integer, "per_page": integer}, ["repository"]),
+            self._definition("github_get_commits", "List recent commits with authored date, author, subject, SHA, and URL. Use this to verify a real recent code or documentation change; repository pushed_at alone is not a reportable change.", {"repository": string, "since": string, "until": string, "path": string, "page": integer, "per_page": integer}, ["repository"]),
             self._definition("github_get_pull_requests", "List repository pull requests, optionally filtered by state and sorting.", {"repository": string, "state": string, "sort": string, "direction": string, "page": integer, "per_page": integer}, ["repository"]),
             self._definition("github_compare_repositories", "Compare two GitHub repositories for implementation and technical solution evaluation.", {"repositories": {"type": "array", "items": string, "minItems": 2, "maxItems": 2}}, ["repositories"]),
         ]
@@ -66,6 +67,8 @@ class GitHubTools(PlatformTools):
                 return await asyncio.to_thread(self._issue, client, arguments)
             if tool_name == "github_get_releases":
                 return await asyncio.to_thread(self._releases, client, arguments)
+            if tool_name == "github_get_commits":
+                return await asyncio.to_thread(self._commits, client, arguments)
             if tool_name == "github_get_pull_requests":
                 return await asyncio.to_thread(self._pulls, client, arguments)
             if tool_name == "github_compare_repositories":
@@ -138,6 +141,32 @@ class GitHubTools(PlatformTools):
         owner, repo = self._split(args["repository"])
         items = client.get_releases(owner, repo, page=max(1, args.get("page", 1)), per_page=min(100, max(1, args.get("per_page", 20))))
         return self._format_items("Releases", items, lambda item: "{} | {} | {} | {}".format(item.get("tag_name", ""), item.get("name", ""), item.get("published_at", ""), item.get("html_url", "")))
+
+    def _commits(self, client: GitHubClient, args: dict[str, Any]) -> str:
+        owner, repo = self._split(args["repository"])
+        items = client.get_commits(
+            owner,
+            repo,
+            since=args.get("since"),
+            until=args.get("until"),
+            path=args.get("path"),
+            page=max(1, args.get("page", 1)),
+            per_page=min(100, max(1, args.get("per_page", 20))),
+        )
+
+        def format_commit(item: dict[str, Any]) -> str:
+            commit = item.get("commit") or {}
+            author = commit.get("author") or {}
+            subject = (commit.get("message") or "").splitlines()[0]
+            return "{} | {} | {} | {} | {}".format(
+                (item.get("sha") or "")[:12],
+                author.get("date", ""),
+                author.get("name", ""),
+                subject,
+                item.get("html_url", ""),
+            )
+
+        return self._format_items("Commits", items, format_commit)
 
     def _pulls(self, client: GitHubClient, args: dict[str, Any]) -> str:
         owner, repo = self._split(args["repository"])

@@ -158,5 +158,8 @@ class GitHubClient:
     def get_releases(self, owner: str, repo: str, **params: Any) -> list[dict[str, Any]]:
         return self.get("/repos/{}/{}/releases".format(owner, repo), params)
 
+    def get_commits(self, owner: str, repo: str, **params: Any) -> list[dict[str, Any]]:
+        return self.get("/repos/{}/{}/commits".format(owner, repo), params)
+
     def get_pull_requests(self, owner: str, repo: str, **params: Any) -> list[dict[str, Any]]:
         return self.get("/repos/{}/{}/pulls".format(owner, repo), params)
