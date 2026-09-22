@@ -578,22 +578,23 @@ class TwitterClient:
             use_post=True,
         )
 
-    def get_feed(self, max_per_user: int = 5) -> list[Tweet]:
-        """Fetch latest tweets from all configured watchlist accounts.
+    def get_feed(self, max_per_user: int = 5, usernames: list[str] | None = None) -> list[Tweet]:
+        """Fetch latest tweets from a configured or explicitly supplied watchlist.
 
-        Reads the ``twitter_watchlist`` config key and fetches recent
-        tweets from each account, then merges and sorts by time
-        (most recent first).
+        An explicit ``usernames`` list is scoped to this read-only call. It is
+        useful for products that need an editorial watchlist without mutating
+        the account-level ``twitter_watchlist`` used by other products.
 
         Args:
             max_per_user: Max tweets to fetch per account.
+            usernames: Optional screen names that override the configured list.
 
         Returns:
             List of tweets sorted by created_at descending.
         """
-        watchlist = cfg.get_config().get("twitter_watchlist", [])
-        if not watchlist:
-            logger.warning("twitter_watchlist is empty — configure it in ~/.webmirage/config.yaml")
+        watchlist = usernames if usernames is not None else cfg.get_config().get("twitter_watchlist", [])
+        if not isinstance(watchlist, list) or not watchlist:
+            logger.warning("twitter watchlist is empty — configure it or pass usernames")
             return []
 
         all_tweets: list[Tweet] = []

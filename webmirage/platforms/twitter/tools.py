@@ -248,8 +248,10 @@ class TwitterTools(PlatformTools):
             {
                 "name": "twitter_feed",
                 "description": (
-                    "Fetch the latest tweets from all configured watchlist accounts at once. "
-                    "Accounts are configured in ~/.webmirage/config.yaml under 'twitter_watchlist'. "
+                    "Fetch the latest tweets from a configured watchlist or an explicit account list. "
+                    "Without usernames, accounts come from ~/.webmirage/config.yaml under "
+                    "'twitter_watchlist'. With usernames, the supplied read-only list is used "
+                    "for this call only and does not change the global watchlist. "
                     "Returns tweets merged and sorted by time (most recent first).\n\n"
                     "Use this when the user says:\n"
                     "- 'What's my feed?'\n"
@@ -264,6 +266,13 @@ class TwitterTools(PlatformTools):
                             "type": "integer",
                             "description": "Max tweets to fetch per account (default: 5)",
                             "default": 5,
+                        },
+                        "usernames": {
+                            "type": "array",
+                            "description": "Optional explicit X account screen names without @. Overrides the configured watchlist for this one read-only call.",
+                            "items": {"type": "string"},
+                            "minItems": 1,
+                            "maxItems": 30,
                         },
                     },
                 },
@@ -348,18 +357,16 @@ class TwitterTools(PlatformTools):
                 )
 
             elif tool_name == "twitter_feed":
+                usernames = arguments.get("usernames")
                 tweets = await asyncio.to_thread(
                     client.get_feed,
                     max_per_user=arguments.get("max_per_user", 5),
+                    usernames=usernames if isinstance(usernames, list) else None,
                 )
                 if not tweets:
                     return (
-                        "No watchlist configured. Add accounts to "
-                        "~/.webmirage/config.yaml:\n"
-                        "  twitter_watchlist:\n"
-                        "    - TrumpDailyPosts\n"
-                        "    - elonmusk\n"
-                        "    - realDonaldTrump"
+                        "No accounts returned. Configure ~/.webmirage/config.yaml "
+                        "twitter_watchlist or pass the optional usernames list."
                     )
                 return _format_tweets("Watchlist Feed", tweets)
 
