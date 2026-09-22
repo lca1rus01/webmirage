@@ -579,36 +579,51 @@ class TwitterClient:
         )
 
     def get_feed(self, max_per_user: int = 5, usernames: list[str] | None = None) -> list[Tweet]:
-        """Fetch latest tweets from a configured or explicitly supplied watchlist.
+        """Fetch recent tweets with fair coverage of each watched account.
 
         An explicit ``usernames`` list is scoped to this read-only call. It is
         useful for products that need an editorial watchlist without mutating
         the account-level ``twitter_watchlist`` used by other products.
+
+        The return order is deliberately *coverage first*: the newest post from
+        every account is returned before a second post from any account. This
+        prevents verbose or unusually active accounts from crowding other
+        sources out of a downstream report's input budget.
 
         Args:
             max_per_user: Max tweets to fetch per account.
             usernames: Optional screen names that override the configured list.
 
         Returns:
-            List of tweets sorted by created_at descending.
+            Tweets in watchlist-coverage order; each account's own posts remain
+            newest-first.
         """
         watchlist = usernames if usernames is not None else cfg.get_config().get("twitter_watchlist", [])
         if not isinstance(watchlist, list) or not watchlist:
             logger.warning("twitter watchlist is empty — configure it or pass usernames")
             return []
 
-        all_tweets: list[Tweet] = []
+        per_account: list[list[Tweet]] = []
         for username in watchlist:
             username = str(username).lstrip("@")
             try:
                 tweets = self.get_user_posts(username, max_results=max_per_user)
-                all_tweets.extend(tweets)
+                tweets.sort(key=lambda t: _parse_twitter_time(t.created_at), reverse=True)
+                per_account.append(tweets)
                 logger.info("Fetched {} tweets from @{}", len(tweets), username)
             except Exception as exc:
                 logger.warning("Failed to fetch @{}: {}", username, exc)
+                per_account.append([])
 
-        # Sort by created_at descending (most recent first)
-        all_tweets.sort(key=lambda t: _parse_twitter_time(t.created_at), reverse=True)
+        # Round-robin turns a watchlist into an editorial scan: one newest post
+        # from every available account first, then their second-newest posts.
+        # This also ensures text truncation downstream retains broad coverage.
+        all_tweets: list[Tweet] = []
+        max_count = max((len(tweets) for tweets in per_account), default=0)
+        for position in range(max_count):
+            for tweets in per_account:
+                if position < len(tweets):
+                    all_tweets.append(tweets[position])
         return all_tweets
 
     def get_tweet_detail(self, tweet_id: str, max_results: int = 20) -> list[Tweet]:
