@@ -1,38 +1,44 @@
-# webmirage — MCP server (SSE transport) on the home server.
-#
-# Requirements on the host:
-#   * mihomo (Clash Meta) proxy listening on 127.0.0.1:7890
-#   * ./webmirage-config/config.yaml (cookies & watchlists)
-#
-# Proxy routing:
-#   * Twitter  — explicit TWITTER_PROXY (curl_cffi) -> mihomo -> proxy nodes
-#   * Reddit   — https_proxy env (urllib)          -> mihomo -> proxy nodes
-#   * GitHub   — no_proxy exclusion, stays DIRECT (fast from CN)
-#   * Xueqiu/Xianyu — https_proxy env             -> mihomo -> CN rules -> DIRECT
-#
-# Config is mounted as a DIRECTORY (read-write) so that:
-#   * webmirage_set_cookie can persist credential updates from inside
-#   * host-side edits stay visible to the container (single-file mounts
-#     break when the editor replaces the inode)
+# webmirage MCP server with its managed Mihomo proxy sidecar.
+# Persistent Mihomo state (subscription output, geodata and controller config)
+# lives in ./mihomo/data and is intentionally excluded from Git.
+# Set MIHOMO_API_SECRET and MIHOMO_SUBSCRIPTION_URL in .env; never commit it.
 
 services:
+  mihomo:
+    # Set MIHOMO_IMAGE in .env on a new host, or prebuild this compatible image.
+    image: ${MIHOMO_IMAGE:-local/mihomo:v1.19.31}
+    container_name: mihomo
+    restart: unless-stopped
+    volumes:
+      - ./mihomo/data:/root/.config/mihomo
+    ports:
+      - "7890:7890"
+      - "7891:7891"
+      # Controller remains private to this host and the Compose network.
+      - "127.0.0.1:9090:9090"
+
   webmirage:
     build: .
     container_name: webmirage
     restart: unless-stopped
-    network_mode: host
+    depends_on:
+      - mihomo
+    ports:
+      - "8084:8084"
     volumes:
       - ./webmirage-config:/root/.webmirage
     environment:
       WEBMIRAGE_TRANSPORT: sse
       WEBMIRAGE_HOST: 0.0.0.0
       WEBMIRAGE_PORT: "8084"
-      # Outbound proxy (mihomo on host; host network makes it localhost)
-      TWITTER_PROXY: http://127.0.0.1:7890
-      http_proxy: http://127.0.0.1:7890
-      https_proxy: http://127.0.0.1:7890
-      HTTP_PROXY: http://127.0.0.1:7890
-      HTTPS_PROXY: http://127.0.0.1:7890
-      # Keep GitHub direct (fast & unblocked from CN home broadband)
-      no_proxy: localhost,127.0.0.1,github.com,api.github.com,objects.githubusercontent.com,raw.githubusercontent.com
-      NO_PROXY: localhost,127.0.0.1,github.com,api.github.com,objects.githubusercontent.com,raw.githubusercontent.com
+      # WebMirage consumes the integrated sidecar over the private network.
+      TWITTER_PROXY: http://mihomo:7890
+      http_proxy: http://mihomo:7890
+      https_proxy: http://mihomo:7890
+      HTTP_PROXY: http://mihomo:7890
+      HTTPS_PROXY: http://mihomo:7890
+      MIHOMO_CONTROLLER: http://mihomo:9090
+      MIHOMO_API_SECRET: ${MIHOMO_API_SECRET:-}
+      # GitHub stays direct; mihomo must not be proxied recursively.
+      no_proxy: localhost,127.0.0.1,mihomo,github.com,api.github.com,objects.githubusercontent.com,raw.githubusercontent.com
+      NO_PROXY: localhost,127.0.0.1,mihomo,github.com,api.github.com,objects.githubusercontent.com,raw.githubusercontent.com

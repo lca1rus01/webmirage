@@ -5,6 +5,8 @@
     - webmirage_reload_config : 热重载 ~/.webmirage/config.yaml（无需重启 MCP 服务）
     - webmirage_set_cookie    : 更新平台凭证并立即热重载（无需 SSH / 重启）
     - webmirage_health        : 各平台健康报告（凭证配置 + 最近调用成败）
+    - webmirage_proxy_status  : 查看集成 Mihomo 的状态、分组和节点
+    - webmirage_proxy_select  : 切换 Mihomo 代理分组的节点
 
 典型场景：用户在浏览器更新了某平台的 cookie，把新值发给 AI，
 AI 调用 webmirage_set_cookie 即可让运行中的服务立即使用新凭证。
@@ -19,6 +21,7 @@ from loguru import logger
 from ..base import PlatformTools
 from ... import config as cfg
 from ... import health
+from ...mihomo import MihomoController, MihomoControllerError
 
 #: 允许通过 webmirage_set_cookie 更新的凭证键（白名单）
 _CREDENTIAL_KEYS: dict[str, str] = {
@@ -45,7 +48,7 @@ class SystemTools(PlatformTools):
     """webmirage 系统管理工具集。"""
 
     name = "system"
-    description = "webmirage 系统管理：配置热重载 / 凭证更新 / 平台健康"
+    description = "webmirage 系统管理：配置热重载 / 凭证更新 / 平台健康 / Mihomo 代理"
 
     def __init__(self) -> None:
         # 由 server.py 注入：重载所有平台缓存的回调，返回已刷新的平台名列表
@@ -127,6 +130,32 @@ class SystemTools(PlatformTools):
                     "properties": {},
                 },
             },
+            {
+                "name": "webmirage_proxy_status",
+                "description": (
+                    "Check the integrated Mihomo proxy sidecar: its version, "
+                    "selectable proxy groups, current selections, and available nodes. "
+                    "No controller secret is returned. Use this before switching nodes "
+                    "or when diagnosing proxy connectivity."
+                ),
+                "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "webmirage_proxy_select",
+                "description": (
+                    "Switch ONE Mihomo selector group to ONE node. First call "
+                    "webmirage_proxy_status and use its exact group and node names. "
+                    "This changes outbound routing immediately, without restarting WebMirage."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "group": {"type": "string", "description": "Exact selector group name"},
+                        "node": {"type": "string", "description": "Exact node name from that group"},
+                    },
+                    "required": ["group", "node"],
+                },
+            },
         ]
 
     async def handle_call(self, tool_name: str, arguments: dict[str, Any]) -> str:
@@ -137,6 +166,10 @@ class SystemTools(PlatformTools):
             return self._set_cookie(arguments)
         if tool_name == "webmirage_health":
             return self._health_report()
+        if tool_name == "webmirage_proxy_status":
+            return self._proxy_status()
+        if tool_name == "webmirage_proxy_select":
+            return self._proxy_select(arguments)
         return "Error: Unknown system tool '{}'".format(tool_name)
 
     # ------------------------------------------------------------------ #
@@ -193,6 +226,57 @@ class SystemTools(PlatformTools):
             self._refresh_clients(),
         ]
         return "\n".join(lines)
+
+    # ------------------------------------------------------------------ #
+    # Integrated Mihomo management
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _mihomo_controller() -> MihomoController | None:
+        config = cfg.get_config()
+        secret = str(config.get("mihomo_api_secret", "")).strip()
+        if not secret:
+            return None
+        return MihomoController(str(config.get("mihomo_controller", "http://mihomo:9090")), secret)
+
+    def _proxy_status(self) -> str:
+        controller = self._mihomo_controller()
+        if controller is None:
+            return "Error: MIHOMO_API_SECRET is not configured; proxy controller access is disabled."
+        try:
+            status = controller.status()
+        except MihomoControllerError as exc:
+            return "Error: Mihomo proxy status unavailable: {}".format(exc)
+
+        groups = status["groups"]
+        lines = ["Mihomo proxy status: version={}, selector_groups={}".format(status["version"], len(groups))]
+        for group in groups:
+            candidates = group["candidates"]
+            preview = ", ".join(candidates[:25])
+            if len(candidates) > 25:
+                preview += ", ... ({} total)".format(len(candidates))
+            lines.append("- {} [{}] -> {} | nodes: {}".format(group["name"], group["type"], group["selected"] or "(none)", preview or "(none)"))
+        return "\n".join(lines)
+
+    def _proxy_select(self, arguments: dict[str, Any]) -> str:
+        group = str(arguments.get("group", "")).strip()
+        node = str(arguments.get("node", "")).strip()
+        if not group or not node:
+            return "Error: group and node must both be non-empty"
+        controller = self._mihomo_controller()
+        if controller is None:
+            return "Error: MIHOMO_API_SECRET is not configured; proxy controller access is disabled."
+        try:
+            status = controller.status()
+            selected_group = next((item for item in status["groups"] if item["name"] == group), None)
+            if selected_group is None:
+                return "Error: proxy group '{}' was not found; call webmirage_proxy_status first.".format(group)
+            if node not in selected_group["candidates"]:
+                return "Error: node '{}' is not in group '{}'; call webmirage_proxy_status first.".format(node, group)
+            controller.select_proxy(group, node)
+        except MihomoControllerError as exc:
+            return "Error: Mihomo proxy switch failed: {}".format(exc)
+        return "Mihomo proxy group '{}' switched to '{}'.".format(group, node)
 
     # ------------------------------------------------------------------ #
     # webmirage_health

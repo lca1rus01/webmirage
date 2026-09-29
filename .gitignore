@@ -27,3 +27,8 @@ config.yaml
 # Cache
 *.log
 .cache/
+
+# Managed Mihomo state: subscription config, controller secret and geodata
+mihomo/data/*
+!mihomo/data/.gitkeep
+mihomo/*.candidate.yaml

@@ -218,6 +218,34 @@ github_tokens:
 
 ---
 
+## 集成 Mihomo 代理（Docker）
+
+仓库根目录的 `docker-compose.yml` 现在同时管理 `webmirage` 和 `mihomo`：WebMirage 通过私有 Compose 网络使用 `mihomo:7890`，而原有的宿主机端口保持不变（SSE `8084`、代理 `7890/7891`、仅本机可访问的控制器 `127.0.0.1:9090`）。
+
+1. 创建不提交的运行配置：
+
+   ```bash
+   cp .env.example .env
+   chmod 600 .env
+   ```
+
+2. 在 `.env` 中设置 `MIHOMO_API_SECRET`；首次部署还需要把已有 Mihomo 的 `config.yaml`、`API_SECRET`、`geoip.metadb` 和 `geosite.dat` 放在 `mihomo/data/`。该目录被 Git 忽略，避免提交订阅节点、控制器密钥和 Geo 数据。
+3. 若宿主机没有默认的 `local/mihomo:v1.19.31` 镜像，在 `.env` 中设置兼容的 `MIHOMO_IMAGE`。
+4. 启动：
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+MCP 额外提供两个代理工具：
+
+- `webmirage_proxy_status`：查看 Mihomo 版本、可切换分组、当前节点及候选节点；
+- `webmirage_proxy_select`：使用状态工具返回的精确 `group` 和 `node` 名即时切换节点。
+
+刷新订阅时运行 `./mihomo/update_subscription.sh`。它会在替换当前配置前下载到临时文件、规范化 REALITY `short-id`、调用运行中的 Mihomo 验证候选配置，并在重启失败时回滚；订阅 URL 只从环境变量或不提交的 `.env` 读取。
+
+---
+
 ## 设计理念
 
 **webmirage 不是一个 API 包装层，是一个 Cookie 驱动的反检测数据层。**

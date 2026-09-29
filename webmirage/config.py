@@ -96,6 +96,15 @@ def get_config() -> dict[str, Any]:
         "TWITTER_PROXY", file_config.get("twitter_proxy", "")
     )
 
+    # Mihomo controller credentials are kept in environment variables by default.
+    # Do not put MIHOMO_API_SECRET in a committed config file.
+    config["mihomo_controller"] = os.environ.get(
+        "MIHOMO_CONTROLLER", file_config.get("mihomo_controller", "http://mihomo:9090")
+    ).rstrip("/")
+    config["mihomo_api_secret"] = os.environ.get(
+        "MIHOMO_API_SECRET", file_config.get("mihomo_api_secret", "")
+    )
+
     # Rate limit defaults
     config["request_delay"] = file_config.get("request_delay", 2.5)
     config["max_retries"] = file_config.get("max_retries", 3)

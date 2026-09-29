@@ -7,7 +7,7 @@ COPY pyproject.toml README.md ./
 COPY webmirage ./webmirage
 RUN pip install --no-cache-dir --timeout 120 .
 
-# Config lives at ~/.webmirage/config.yaml (mount it read-only)
+# Config lives at ~/.webmirage/config.yaml (Compose mounts the directory read-write)
 RUN mkdir -p /root/.webmirage
 
 ENV WEBMIRAGE_TRANSPORT=sse \
